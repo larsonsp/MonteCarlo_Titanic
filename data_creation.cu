@@ -101,6 +101,7 @@ __global__ void generateNormal_deprecated(curandState_t* states, float* results,
 }
 
 __constant__ float TWO_PI = 2.0f * M_PI;
+
 __global__ void generateNormal(curandState_t* states, float* results, int n, float mean, float stddev, int decimalPlaces) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if (idx >= n) return;
@@ -109,15 +110,16 @@ __global__ void generateNormal(curandState_t* states, float* results, int n, flo
     float u1 = curand_uniform(&localState);
     float u2 = curand_uniform(&localState);
 
-    // Using FMA for efficiency
     float radius = sqrtf(-2.0f * logf(u1));
-    float angle = TWO_PI * M_PI * u2;
-    float normalValue = fma(radius, cosf(angle), mean);
-    normalValue = fma(normalValue, stddev, 0.0f);
+    float angle = TWO_PI * u2;
+    float normalValue = radius * cosf(angle); // Or sinf(angle) for the second independent value
+
+    normalValue = fma(normalValue, stddev, mean);
 
     results[idx] = roundToDecimal(normalValue, decimalPlaces);
     states[idx] = localState;
 }
+
 
 
 __global__ void generateNormalNoRounding(curandState_t* states, float* results, int n, float mean, float stddev, int decimalPlaces) {
